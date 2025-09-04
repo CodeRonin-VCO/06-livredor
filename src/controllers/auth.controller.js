@@ -1,5 +1,7 @@
 import argon2 from "argon2";
 import { generateToken } from "../utils/jwt.utils.js";
+import db from "./models/index.model.js";
+
 
 // ↓ Fake data des comptes (Futur -> la DB)
 const users = [
@@ -21,7 +23,7 @@ const authController = {
         const { email, password } = req.body;
 
         // ==== Vérifier si l'utilisateur existe ====
-        const user = users.find(u => u.email === email);
+        const user = db.user.find(u => u.email === email);
         // Si non → erreur 400
         if (!user) {
             res.status(400).json({ error: "Credential invalid !" })
@@ -50,7 +52,7 @@ const authController = {
         };
 
         // ==== Vérifier si l'utilisateur existe déjà ====
-        const existingUser = users.find(u => u.email === email);
+        const existingUser = db.user.find(u => u.email === email);
         if (existingUser) {
             res.status(400).json({ message: "L'utilisateur existe déjà." })
             return;
@@ -64,7 +66,7 @@ const authController = {
         };
 
         // ==== Rajouter l'utilisateur au tableau/db
-        users.push(newUser);
+        db.user.push(newUser);
 
         res.status(201).location(`/api/auth/${newUser.email}`).json(newUser);
     },
