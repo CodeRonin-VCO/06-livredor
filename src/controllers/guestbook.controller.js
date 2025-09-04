@@ -1,4 +1,7 @@
 import express from "express";
+import { v4 as uuidv4 } from 'uuid';
+
+
 let messages = [];
 
 const msgMapper = {
@@ -45,7 +48,7 @@ const guestbookController = {
 
 
      /**
-     * (GET) A voir avec Vincent :p
+     * (POST) /api/guestbook
      * @param {express.Request} req 
      * @param {express.Response} res 
      */
@@ -66,7 +69,7 @@ const guestbookController = {
 
         // Insert data
         const newMsg = {
-            id: 2,
+            id: uuidv4(),
             author,
             message,
             hasSpoiler,
@@ -75,13 +78,13 @@ const guestbookController = {
 
         messages.push(newMsg);
 
-        // todo -> Add location
-        res.status(201).json(msgMapper.toCompleteDTO(newMsg));
+        //! L'erreur 201 prend toujours une location !!! voir doc
+        res.status(201).location(`/api/guestbook/${newMsg.id}`).json(msgMapper.toCompleteDTO(newMsg));
     },
     detailsMessage: async (req, res) => {
         // (GET) /api/guestbook/:id
 
-        const id = parseInt(req.params.id);
+        const id = req.params.id;
         const msg = messages.find(m => m.id === id);
 
         if(!msg) {
@@ -90,6 +93,30 @@ const guestbookController = {
         }
 
         res.status(200).json(msgMapper.toCompleteDTO(msg))
+    },
+    modifyMsg: async (req, res) => {
+        // (PUT) /api/guestbook/<id>
+
+        // ==== Rechercher l'id et vérifier s'il existe ====
+        const id = req.params.id;
+        const msg = messages.find(m => m.id === id);
+
+        if(!msg) {
+            res.sendStatus(404);
+            return;
+        }
+
+        // ==== Retrouver l'index du message ====
+        const indexMsg = messages.findIndex(m => m.id === id);
+        if (index === -1) {
+            res.sendStatus(404)
+            return
+        }
+
+        messages[indexMsg] = {...messages[indexMsg], ...req.body};
+
+        res.status(200).json(messages[indexMsg]);
+
     }
 };
 

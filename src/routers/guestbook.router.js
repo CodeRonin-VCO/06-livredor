@@ -1,5 +1,6 @@
 import { Router } from "express";
 import guestbookController from "../controllers/guestbook.controller.js";
+import { authorizedMiddleware } from "../middlewares/auth.middleware.js";
 
 
 const guestbookRouter = Router();
@@ -7,10 +8,11 @@ const guestbookRouter = Router();
 guestbookRouter.route("/")
     // .get(guestbookController.message) // test connect
     .get(guestbookController.cutOffMessage)
-    .post(guestbookController.postMessage);
-
+    .post(authorizedMiddleware(),guestbookController.postMessage)
+;
 guestbookRouter.route("/:id")
-    .get(guestbookController.detailsMessage)
-
+    .get(authorizedMiddleware(), guestbookController.detailsMessage)
+    .put(authorizedMiddleware(), guestbookController.modifyMsg)
+;
 
 export default guestbookRouter;
