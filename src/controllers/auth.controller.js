@@ -19,14 +19,18 @@ const users = [
 
 const authController = {
     login: async (req, res) => {
+        // ?? Il faut utiliser un try catch
+
+        try {
         // ==== Récupérer les données entrées ====
         const { email, password } = req.body;
 
         // ==== Vérifier si l'utilisateur existe ====
-        const user = db.user.find(u => u.email === email);
+        const user = await db.User.findOne({ where: { email } });
         // Si non → erreur 400
         if (!user) {
             res.status(400).json({ error: "Credential invalid !" })
+            return;
         }
         // Si oui → validation
         const pwd_db = user.pwd;
@@ -40,6 +44,9 @@ const authController = {
         const token = await generateToken(user)
 
         res.status(200).json({ token });
+        } catch (err) {
+            res.status(500).json({ error: "Erreur serveur." });
+        }
     },
     register: async (req, res) => {
         // ==== Récupérer les données entrées ====
@@ -52,33 +59,36 @@ const authController = {
         };
 
         // ==== Vérifier si l'utilisateur existe déjà ====
-        const existingUser = db.user.find(u => u.email === email);
+        const existingUser = await db.User.findOne({ where: { email } });
         if (existingUser) {
             res.status(400).json({ message: "L'utilisateur existe déjà." })
             return;
         }
 
         // ==== Création d'un nouvel utilisateur ====
-        const newUser = {
+        const newUser = await db.User.create({
             email,
             pwd: await argon2.hash(password),
             username
-        };
+        });
 
         // ==== Rajouter l'utilisateur au tableau/db
-        db.user.push(newUser);
+        // ? redondance, avec create c'est fait automatiquement
+        // await db.User.push(newUser);
 
         res.status(201).location(`/api/auth/${newUser.email}`).json(newUser);
     },
     updatePwd: async (req, res) => {
         // ==== Récupérer les données entrées ====
         const { oldPassword, newPassword } = req.body;
-        const user = req.user.email;
+        const email = req.user.email;
+        const user = await db.User.findOne({ where: { email } });
 
         // ==== Vérifier si l'utilisateur existe ====
         // Si non → erreur 400
         if (!user) {
             res.status(400).json({ error: "User not found !" })
+            return
         }
 
         // ==== Vérifier si le mdp est valide ====
@@ -93,6 +103,8 @@ const authController = {
 
         // ==== Stocker le nouveau mdp ====
         user.pwd = hashNewPwd;
+
+        await user.save();
 
         res.status(200).json({ message: "Mot de passe modifié avec succès." })
     }
